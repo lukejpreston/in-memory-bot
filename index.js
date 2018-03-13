@@ -94,8 +94,10 @@ const bot = (scripts = {}) => {
                 const script = scripts[name]
                 if (script.query) {
                     let count = script.query.filter(q => typeof q === 'string' && message.toLowerCase().includes(q.toLowerCase()) || message.match(q) !== null)
-                    if (count > 0) matched.push({
-                        name, priority: script.priority
+                    if (count.length > 0) matched.push({
+                        name,
+                        count: count.length,
+                        priority: script.priority || -1
                     })
                 }
             })
@@ -108,8 +110,12 @@ const bot = (scripts = {}) => {
                 })
             }
             const matchedScript = matched.sort((left, right) => {
-                if (left.priority < right.priority) return -1
-                if (left.priority > right.priority) return 1
+                if (left.count > right.count) return -1
+                if (left.count < right.count) return 1
+                if (left.count === right.count) {
+                    if (left.priority > right.priority) return -1
+                    if (left.priority < right.priority) return 1
+                }
                 return 0
             })[0]
             const script = scripts[matchedScript.name]
@@ -125,5 +131,16 @@ const bot = (scripts = {}) => {
     return me
 }
 
+const helpers = {
+    amIs (message) {
+        let regex = /.*\s*(?:is|Is|IS|iS)\s*(.*)/g
+        let match = regex.exec(message)
+        if (match !== null) return match[1]
+        regex = /.*\s*(?:am|Am|AM|aM)\s*(.*)/g
+        match = regex.exec(message)
+        if (match !== null) return match[1]
+        return message
+    }
+}
     
-module.exports = {builder, bot}
+module.exports = {builder, bot, helpers}
