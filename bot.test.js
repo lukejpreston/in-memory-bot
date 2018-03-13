@@ -2,8 +2,8 @@ const Bot = require('./')
 const chalk = require('chalk')
 const fs = require('fs')
 
-const affData = fs.readFileSync('./node_modules/typo-js/dictionaries/en_US/en_US.aff').toString()
-const wordsData = fs.readFileSync('./node_modules/typo-js/dictionaries/en_US/en_US.dic').toString()
+const affData = fs.readFileSync('./en_US.aff').toString()
+const wordsData = fs.readFileSync('./en_US.dic').toString()
 
 test('bot', () => {
     const scripts = Bot.builder()
@@ -68,7 +68,6 @@ test('bot', () => {
         botLog += chalk.yellow.bold(response.join('\n      '))
         logs.push(botLog)
     }
-
 
     yourMessage('Hello')
     yourMessage('My name is Luke John Preston')
