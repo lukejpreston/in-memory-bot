@@ -1,4 +1,5 @@
 const mustache = require('mustache')
+const Typo = require('typo-js')
 
 const builder = (scripts = {}) => {
     let current = null
@@ -48,7 +49,20 @@ const builder = (scripts = {}) => {
     return me
 }
 
-const bot = (scripts = {}) => {
+const bot = (scripts = {}, language, aff, words) => {
+    const dictionary = new Typo(language, aff, words)
+
+    const typos = (message) => {
+        const words = message.match(/(\w*)/g).filter(word => word !== '')
+        let wordsWithSpelling = []
+        words.forEach(word => {
+            word = word.toLowerCase(0)
+            wordsWithSpelling.push(word)
+            wordsWithSpelling = wordsWithSpelling.concat(dictionary.suggest(word))
+        })
+        return wordsWithSpelling
+    }
+
     const history = []
 
     const store = {}
@@ -97,7 +111,15 @@ const bot = (scripts = {}) => {
             Object.keys(scripts).forEach(name => {
                 const script = scripts[name]
                 if (script.query) {
-                    let count = script.query.filter(q => typeof q === 'string' && message.toLowerCase().includes(q.toLowerCase()) || message.match(q) !== null)
+                    const messageWords = typos(message)
+
+                    let count = script.query.filter(q => {
+                        if (typeof q === 'string') {
+                            const words = q.toLowerCase().match(/(\w*)/g).filter(word => word !== '')
+                            if (messageWords.some(word => words.includes(word))) return true
+                        }
+                        return message.match(q) !== null
+                    })
                     if (count.length > 0) matched.push({
                         name,
                         count: count.length,

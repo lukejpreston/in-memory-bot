@@ -1,12 +1,19 @@
 const Bot = require('./')
 const chalk = require('chalk')
+const fs = require('fs')
+
+const affData = fs.readFileSync('./node_modules/typo-js/dictionaries/en_US/en_US.aff').toString()
+const wordsData = fs.readFileSync('./node_modules/typo-js/dictionaries/en_US/en_US.dic').toString()
 
 test('bot', () => {
     const scripts = Bot.builder()
+        .script('default')
+            .response('Sorry I don\'t understand')
+            .default()
         .script('welcome')
+            .query('hello')
             .response('Hello and welcome to the test.')
             .responseScript('name')
-            .default()
         .script('name')
             .store('name', 'your-name')
             .response('What is your name?')
@@ -47,7 +54,7 @@ test('bot', () => {
             .response('My name is "Bot", that is short of "In Memory Bot"')
         .build()
 
-    const bot = Bot.bot(scripts)
+    const bot = Bot.bot(scripts, "en_US", affData, wordsData)
 
     const logs = []
     const yourMessage = (message) => {
@@ -68,7 +75,7 @@ test('bot', () => {
     yourMessage('I am 28 years old')
     yourMessage('What is my name?')
     yourMessage('What is my first name?')
-    yourMessage('What is your name?')
+    yourMessage('What is yor nam?')
 
-    console.log(logs.join('\n\n'))
+    console.log(logs.join('\n\n'))    
 })
