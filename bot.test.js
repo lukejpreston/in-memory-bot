@@ -26,7 +26,7 @@ test('bot', () => {
             .store('age', 'your-age')
         .script('your-age')
             .parse((message) => Bot.helpers.amIs(message))
-            .response((bot) => {
+            .responseFn((bot) => {
                 const age = parseInt(bot.store().age, 10)
                 return `{{name}}, you were born in ${new Date().getFullYear(0) - age}`
             })

@@ -11,9 +11,13 @@ const builder = (scripts = {}) => {
         priority (priority) {
             scripts[current].priority = priority
             return me
-        },
+        },        
         response (response) {
             scripts[current].response = response
+            return me
+        },
+        responseFn (responseFn) {
+            scripts[current].responseFn = responseFn
             return me
         },
         responseScript (name) {
@@ -53,7 +57,7 @@ const bot = (scripts = {}) => {
 
     const response = (script, respond = []) => {
         let value = script.response
-        if (typeof value === 'function') value = value(me)
+        if (script.responseFn) value = script.responseFn(me)
         if (typeof value === 'string') value = mustache.render(value, store)
         respond.push(value)
         if (!script.hasOwnProperty('store') && script.responseScript) response(scripts[script.responseScript], respond)
