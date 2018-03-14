@@ -27,7 +27,7 @@ module.exports = ({
 
   const respond = (script, original = '', res = []) => {
     let message = original
-    if (script.responseFn) message = script.responseFn(bot)
+    if (script.responseFn) message = script.responseFn(bot, original)
     else if (script.response) message = script.response
     if (typeof message === 'string') message = mustache.render(message, merge(store, {_message: original}))
     res.push({user, message})
@@ -158,7 +158,7 @@ module.exports = ({
     message ({user = 'you', message}) {
       history = history.concat({user, message})
       if (next) {
-        next.store(message, bot)
+        next.store(bot, message)
         const result = respond(next.script, message)
         return result
       } else {

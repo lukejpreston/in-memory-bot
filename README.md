@@ -6,7 +6,7 @@ A JavaScript bot which works in the browser without a server
 
 Unlike a traditional bot it does not learn, nor is it sentient and definatly not smart. It works because you make it work.
 
-In memory means it is quicker than any other bot on the market, it requires no server and cost nothing. You can make as many requests as you feel like, have as many users attached to it as your application will allow and you can hack it to pieces if you feel like it.
+In memory means it is quicker than any other bot on the market, it requires no server and cost nothing. You can make as many requests as you feel like, have as many users as you feel like and your bots can chat to each other
 
 ## Installation
 
@@ -14,332 +14,1053 @@ In memory means it is quicker than any other bot on the market, it requires no s
 
 ## Usage
 
-Here is the basic usage
+see the test for a deeper usage [bot.test.js](https://github.com/lukejpreston/in-memory-bot/blob/master/bot.test.js)
+
+here is a basic example
 
 ```js
-import Bot from 'bot'
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
 
-const scripts = Bot.builder()
-    .script('hello')
-        .response('Hello, my name is Bot. How can I help?')
+const scripts = Builder()
+    .script('default')
+        .response('I don\'t understand {{_message}}')
         .default()
+    .script('hello')
+        .include('hello')
+        .response('How do you do?')
     .build()
-const bot = Bot.bot(scripts, "en_US", aff, words)
-const response = bot.message('How do I use the In Memory Bot?')
-// respnonse === ['Hello, my name is Bot. How can I help?']
-```
 
-Getting your aff and words
+const bot = Bot({user: 'Bot', scripts})
 
-If you are using webpack
+const reply = bot.message({
+    user: 'Luke',
+    message: 'Hello, how are you?'
+})
 
-```js
-import aff from 'in-memory-bot/en_US.aff'
-import words from 'in-memory-bot/en_US.dic'
-```
-
-If you are using node
-
-```js
-const fs = require('fs')
-const aff = fs.readFileSync('./node_modules/in-memory-bot/en_US.aff').toString()
-const words = fs.readFileSync('./node_modules/in-memory-bot/en_US.dic').toString()
+reply === [{
+    user: 'Luke',
+    message: 'Hello, how are you?'
+}, {
+    user: 'Bot',
+    message: 'How do you do?'
+}]
 ```
 
 ## API
 
-### builder
+### Builder
 
-the builder will create your scripts which you can then feed into your bot
+Use this to generate scripts for your bot. A script is part query and part response. You could save the scripts to a `js` file or you could save the scripts to a `json` file, remember you can't write functions to a JSON file.
+
+#### constructor and build
+
+the constructor takes no arguments and `build` returns the `scripts`
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .build()
+
+scripts === {}
+```
 
 #### script
 
-starts the script build, everything that follows will be added to the script until you either call `script` or `build`
+start building a script with a name
 
 ```js
-Bot.builder().script('my-unique-name')
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+    .build()
+
+scripts === {
+    name: {}
+}
 ```
 
-#### query
+#### start
 
-What will be matched when you send a message, can be either a string or regex or an array of strings or regexes. If it is a string it will use your dictionary in order to aid with guessing. I would advise you keep your strings to the point and treat them more as key words as opposed to sentences, if you want to check for phrases them use the regex
+the start script, takes a boolean value
 
 ```js
-Bot.builder()
-    .script('hello')
-        .query('hello')
-        .query(['hi', 'hullo'])
-        .response('Welcome')
-    .script('goodbye')
-        .query('bye')
-        .query(['bi', 'cheerio'])
-        .query(/so long/g)
-        .response('See ya!')
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('welcome')
+        .start()
+    .build()
+
+scripts === {
+    welcome: {
+        start: true
+    }
+}
+```
+
+#### default
+
+the default value if nothing is matched
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('default')
+        .default()
+    .build()
+
+scripts === {
+    default: {
+        default: true
+    }
+}
 ```
 
 #### priority
 
-you can assign scripts different priorities, so if two query match then it will pick the one with the highest priority. If that also matches it will pick whatever comes out first
+if two or more queries match the higher priority will win
 
 ```js
-Bot.builder()
-    .script('hello')
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('higher')
         .priority(2)
-        .query('hello')
-        .response('Welcome, One')
-    .script('hello-2')
+    .script('lower')
         .priority(1)
-        .query('hello')
-        .query('hi')
-        .response('Welcome, Two')
-```
+    .build()
 
-Matching works by counting matching queries and then priority so if I did `bot.message('hello')` the response would be `['Welcome, One']` but if I did `bot.message('hello hi')` the response would be `['Welcome, Two]` since it matched on both `hi` and `hello`
-
-#### default
-
-If it does not match it will default to this response, if you have multiple default messages it will pick the first one it finds
-
-```js
-Bot.builder()
-    .script('default')
-        .response('Sorry I don\'t understand')
-        .default()
+scripts === {
+    higher: {
+        priority: 2
+    },
+    lower: {
+        priority: 1
+    }
+}
 ```
 
 #### response
 
-What the script will respond with, either a string or any object. If it is a string you can use mustache template in order to populate values that your bot has stored, e.g. you could save a users name. See `store` for more info on storing and using mustache
+Once matched this is the response given
+
+It can be any object
+
+If it is a string it will be passed through the [mustache](https://github.com/janl/mustache.js) with `_message` and the `store`, see [store](####builder.store)
 
 ```js
-Bot.builder()
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
     .script('hello')
-        .query('hello')
-        .response('Welcome')
-    .script('goodbye')
-        .query('bye')
-        .response('See ya!')
-    .script('your-name')
-        .query('name')
-        .response('Your name is {{name}}')
-    .script('home')
-        .query('home')
+        .response('Hello, how are you?')
+    .script('mustache')
+        .response('Welcome back {{name}}')
+    .script('mustache-message')
+        .response('You said {{_message}}')
+    .script('anything')
         .response({
-            href: '/home',
-            label: 'Home'
+            link: 'http://google.com',
+            label: 'Google'
         })
-    .script('home')
-        .query('home')
-        .response(() => new Promise((resolve, reject) => {resolve('some http request perhaps')}))
+    .build()
+
+scripts === {
+    hello: {
+        response: 'Hello, how are you?'
+    },
+    mustache: {
+        response: 'Welcome back {{name}}'
+    },
+    'mustache-message': {
+        response: 'You said {{_message}}'
+    },
+    anything: {
+        response: {
+            link: 'http://google.com',
+            linklabel: 'Google'
+        }
+    }
+}
 ```
 
 #### responseScript
 
-Instead of responding with an object you could respond with another script, so you can chain scripts togther, for example when asking a question, `store` takes a second parameter which is the name of a script see store for more details
+If matched it will call the response script once run, it will be called after `store` has finished, see [store](####builder.store)
 
 ```js
-Bot.builder()
-    .script('welcome')
-        .default()
-        .response('Welcome')
-        .responseScript('name')
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('hello')
+        .response('Hello and welcome!')
+        .responseScript('get-name')
+    .script('get-name')
+        .response('What is your name?')
+    .build()
+
+scripts === {
+    hello: {
+        response: 'Hello and welcome!',
+        responseScript: 'get-name'
+    },
+    'get-name': {
+        response: 'What is your name?'
+    }
+}
+```
+
+#### responseFn
+
+Will call this instead of `response` and the value return from this function will be the response
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('time')
+        .responseFn((bot, message) => {
+            return `The time is ${new Date()}`
+        })
+    .build()
+
+scripts === {
+    time: {
+        responseFn: (bot, message) => {
+            return `The time is ${new Date()}`
+        }
+    }
+}
+```
+
+#### builder.store
+
+Pauses the bot and waits for input, then runs the callback on the message before continuing with a `responseScript` if one is present
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
     .script('name')
         .response('What is your name?')
-        .store('name', 'your-name')
+        .store((bot, message) => {
+            bot.store({name: message})
+        })
+        .responseScript('your-name')
     .script('your-name')
-        .response('Hello {{name}}')
+        .response('Your name is {{name}}')
+    .build()
+
+scripts === {
+    name: {
+        response: 'What is your name?'
+        store: (bot, message) => {
+            bot.store({name: message})
+        },
+        responseScript: 'your-name'
+    },
+    'your-name': {
+        response: 'Your name is {{name}}
+    }
+}
+```
+
+#### include
+
+matches against one or more of these values, but not strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .include('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .include('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .include(['i\'m', 'i', 'am', 'is'])
+        .include(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        include: ['name']
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        include: ['name', 'age']
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
+    }
+}
+```
+
+#### match
+
+matches against one or more of these regex values, but not strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .match(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .match(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .match([/\d*/g, /\$d*^/g])
+        .match([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        match: [/\w*/g]
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        match: [/\w*/g, /\d*/g]
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        match: [/\d*/g, /\$d*^/g, /[:num:]/g]
+    }
+}
+```
+
+#### any
+
+matches against at least one of these values, but not strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .any('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .any('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .any(['i\'m', 'i', 'am', 'is'])
+        .any(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        any: [['name']]
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        any: [['name', 'age']]
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
+    }
+}
+```
+
+#### matchAny
+
+matches against at least one of these regex values, but not strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .matchAny(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .matchAny(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .matchAny([/\d*/g, /\$d*^/g])
+        .matchAny([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        matchAny: [[/\w*/g]]
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        matchAny: [[/\w*/g, /\d*/g]
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
+    }
+}
+```
+
+#### must.include
+
+matches against one or more of these values, strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .must.include('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .must.include('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .must.include(['i\'m', 'i', 'am', 'is'])
+        .must.include(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        must: {
+            include: ['name']
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            include: ['name', 'age']
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
+        }
+    }
+}
+```
+
+#### must.match
+
+matches against one or more of these regex values, scrit
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .must.match(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .must.match(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .must.match([/\d*/g, /\$d*^/g])
+        .must.match([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        must: {
+            match: [/\w*/g]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            match: [/\w*/g, /\d*/g]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            match: [/\d*/g, /\$d*^/g, /[:num:]/g]
+        }
+    }
+}
+```
+
+#### must.any
+
+matches against at least one of these values, scrit
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .must.any('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .must.any('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .must.any(['i\'m', 'i', 'am', 'is'])
+        .must.any(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        must: {
+            any: [['name']]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            any: [['name', 'age']]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
+        }
+    }
+}
+```
+
+#### must.matchAny
+
+matches against at least one of these regex values, scrit
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .must.matchAny(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .must.matchAny(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .must.matchAny([/\d*/g, /\$d*^/g])
+        .must.matchAny([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        must: {
+            matchAny: [[/\w*/g]]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            matchAny: [[/\w*/g, /\d*/g]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        must: {
+            matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
+        }
+    }
+}
+```
+
+#### not.include
+
+does not match against one or more of these values, strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .not.include('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .not.include('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .not.include(['i\'m', 'i', 'am', 'is'])
+        .not.include(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        not: {
+            include: ['name']
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            include: ['name', 'age']
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
+        }
+    }
+}
+```
+
+#### not.match
+
+does not match against one or more of these regex values, scrit
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .not.match(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .not.match(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .not.match([/\d*/g, /\$d*^/g])
+        .not.match([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        not: {
+            match: [/\w*/g]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            match: [/\w*/g, /\d*/g]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            match: [/\d*/g, /\$d*^/g, /[:num:]/g]
+        }
+    }
+}
+```
+
+#### not.any
+
+does not match against at least one of these values, scrit
+
+matches against at least one of these values, but not strict
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .not.any('name')
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .not.any('name', 'age')
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .not.any(['i\'m', 'i', 'am', 'is'])
+        .not.any(['years', 'year\'s'])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        not: {
+            any: [['name']]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            any: [['name', 'age']]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
+        }
+    }
+}
+```
+
+#### not.matchAny
+
+does not match against at least one of these regex values, scrit
+
+```js
+import Builder from 'in-memory-bot/builder'
+
+const scripts = Builder()
+    .script('name')
+        .not.matchAny(/\w*/g)
+        .response('Your name is {{name}}')
+    .script('name-age')
+        .not.matchAny(/\w*/g, /\d*/g)
+        .response('Your name is {{name}} and you are {{age}} Year\'s old')
+    .script('set-age')
+        .not.matchAny([/\d*/g, /\$d*^/g])
+        .not.matchAny([/[:num:]/g])
+        .response('You are {{age}} Year\'s old')
+    .build()
+
+scripts === {
+    name: {
+        response: 'Your name is {{name}}'
+        not: {
+            matchAny: [[/\w*/g]]
+        }
+    },
+    'name-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            matchAny: [[/\w*/g, /\d*/g]
+        }
+    },
+    'set-age': {
+        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
+        not: {
+            matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
+        }
+    }
+}
+```
+
+### Bot
+
+the bot, you send your bot(s) messages and it responds
+
+#### constructor
+
+```js
+import Bot from 'in-memory-bot/bot'
+import aff from 'in-memory-bot/en_US.aff'
+import words from 'in-memory-bot/en_US.dic'
+
+const bot = Bot({
+    user: 'Bot',
+    scripts,
+    language: 'en_US',
+    aff,
+    words
+})
+```
+
+default values
+
+```json
+{
+    "user": "bot",
+    "scripts": {}
+}
+```
+
+You do not need to use a dicationary, but it does help the bot know about possible typos. Dictionaries slow the bot down, but not by much and still faster than many server based bots.
+
+We have the `en_US` dictionary available otherwise you will need to bring your own. This bot supports only 1 dictionary at a time, if you wish to swap languages or have multiple language bot I suggest you create multiple bots and ask the user to pick one. This is for performance reasons
+
+The dictionary uses [typo-js](https://github.com/cfinke/Typo.js/)
+
+#### start
+
+runs the first start script it finds, if you want to run mutliple start scripts you should chain them using `responseScript`
+
+```js
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
+
+const scripts = Builder()
+    .script('welcome')
+        .start()
+        .response('Welcome, I am @Bot')
+    .build()
+
+const bot = Bot({user: 'Bot', scripts})
+
+const result = bot.start()
+
+result === [{
+    user: 'Bot',
+    message: 'Welcome, I am @Bot'
+}]
+```
+
+#### message
+
+```js
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
+
+const scripts = Builder()
+    .script('welcome')
+        .include('hello')
+        .response('Hi, I am @Bot')
+    .build()
+
+const bot = Bot({user: 'Bot', scripts})
+
+const result = bot.message({
+    user: 'Luke',
+    message: 'Hello, who is this?'
+})
+
+result === [{
+    user: 'Luke',
+    message: 'Hello, who is this?'
+}, {
+    user: 'Bot',
+    message: 'Hi, I am @Bot'
+}]
 ```
 
 #### store
 
-the store takes a function which it will use to parse the message, which is given the message and the store object
+you can access the values and manipulate the values in the store, either getting values the user has given or setting values such as cookies
+
+store returns a clone of the store value
 
 ```js
-Bot.builder()
-    .script('welcome')
-        .default()
-        .store((message, store) => {
-            store.name = message // assuming you don't want to extract anything
-        })
-        .response('What is your name?')
-        .responseScript('name')
-    .script('name')
-        .response('Welcome, {{name}}')
-```
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
 
-the mustache template works by using your string value and your store, using the below example go look at mustache documentation for more information on what you can do with it
+const scripts = Builder().build()
 
-```js
-let res = bot.message('hello')
-console.log(res) // ['What is your name?']
-res = bot.message('Luke')
-console.log(res) // ['Welcome, Luke']
-```
+const bot = Bot({user: 'Bot', scripts})
 
-#### build
+let store = bot.store()
 
-you need to call build to add your scripts to the bot
+store === {}
 
-```js
-const scripts = Bot.builder()
-    .script('welcome')
-        .response('Hi!')
-        .default()
-    .build()
+store = bot.store({
+    name: 'Luke Preston'
+})
 
-const bot = Bot.bot(scripts, "en_US", aff, words)
-```
+store === {
+    name: 'Luke Preston'
+}
 
-this script is just JSON so you can always save the script somewhere if you wish to skip using the builder
+store = bot.store({
+    age: 28
+})
 
-### bot
-
-#### message
-
-this is how you talk to the bot, it only takes string objects and returns an array response of objects using the scripts generated by the buidler
-
-```js
-const response = bot.message('Hello, my name is Luke')
-```
-
-#### extend
-
-You can extend your bots scripts with more scripts, it assums you are givving in a script object using the builder
-
-```js
-const moreScripts = Bot.builder()
-    .script('goodbye')
-        .response('Bye!')
-        .default()
-    .build()
-
-bot.extend(moreScripts)
+store === {
+    name: 'Luke Preston',
+    age: 28
+}
 ```
 
 #### history
 
-You can view the history of the bot
+get and maniuplate the history
+
+history returns a clone of the history value, unlike store it does not merge history
 
 ```js
-const bot = Bot.bot(scripts, "en_US", aff, words)
-const history = bot.history()
-```
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
 
-the history looks like
+const scripts = Builder().build()
 
-```json
-[{
-    "type": "message",
-    "value": "My name is Luke"
-}, {
-    "type": "response",
-    "value": "Welcome, Luke"
+const bot = Bot({user: 'Bot', scripts})
+
+let history = bot.history()
+
+history === []
+
+bot.message({user: 'Luke', message: 'Hello'})
+
+history = bot.history()
+
+history === [{
+    user: 'Luke',
+    message: 'Hello'
+}]
+
+history = bot.history([{
+    user: 'Admin',
+    message: 'You do not have permission to see the conversation'
+}])
+
+history === [{
+    user: 'Admin',
+    message: 'You do not have permission to see the conversation'
 }]
 ```
 
-#### setHistory
+#### scripts
 
-You can also set history, this will override all history, either as a way to alter history (for censorship perhaps) or to just clear a conversation
+you can extend the scripts of the bot
 
-```js
-const bot = Bot.bot(scripts, "en_US", aff, words)
-const history = bot.history()
-bot.setHistory(history)
-```
-
-#### store
-
-the store is a mutable object with all the values you want to use for later, if you wish to manipulate the store you can do, or if you just want to get a value
+scripts returns a clone of the scripts
 
 ```js
-const store = bot.store()
-store.name = 'hello'
+import Builder from 'in-memory-bot/builder'
+import Bot from 'in-memory-bot/bot'
+
+const scripts = Builder().build()
+
+const bot = Bot({user: 'Bot', scripts})
+
+let scripts = bot.scripts()
+
+scripts === {}
+
+const helloScript = Builder.script('hello').default().response('Hello').build()
+
+scripts = bot.scripts(helloScript)
+
+scripts === {
+    hello: {
+        default: true,
+        response: 'Hello'
+    }
+}
+
+const startScript = Builder.script('welcome').start().response('Welcome').build()
+
+scripts = bot.scripts(helloScript)
+
+scripts === {
+    welcome: {
+        start: true,
+        response: 'Welcome'
+    },
+    hello: {
+        default: true,
+        response: 'Hello'
+    }
+}
 ```
 
-## Helpers
+### Helper
 
-there are a couple of helpers which do some basic regex matching to help you parse a response, they can be used outside of the bot as well as inside
+#### amIs
 
-### amIs
-
-get everything after the words am or is ignore spelling of the word am or is
+regex for checking if the message has `... am ...` or `... is ...` and returns everything after the word `am` or `is`
 
 ```js
-const name = Bot.helpers.amIs('I am blah blah')
-console.log(name) // blah blah
+import Helpers from 'in-memory-bot/helpers'
+
+const result = Helpers.amIs('My name is Luke Preston')
+result === 'Luke Preston'
 ```
 
-### words
+#### words
 
-split a string into words by spaces
+splits a sentence into it's words, `split(' ')` does not take into account lots of spaces, it also ignores anything which isn't a word
 
 ```js
-const name = Bot.helpers.words('I am blah blah')
-console.log(name) // ['I', 'am', 'blah', 'blah']
+import Helpers from 'in-memory-bot/helpers'
+
+const result = Helpers.words('Hello, my name is Luke ')
+result === ['Hello', 'my', 'name', 'is', 'Luke']
 ```
 
-## Multiple Users
+## Algorithm
 
-The bot does not come with multiple users, but you can make multiple bots if you want to have them chat
+The algorithm for matching is quite simple
+
+matching against any `not` does not return that script
+
+matching againt `must` is manditory ortherwise that script is not returned
+
+it then matches against everything creating a count value, it put these scripts into a list, sorting by count then by priority then by default where defualt always has a count of `1`. Then it picks the top value of that list
+
+this should help you construct your scripts to make them more efficient and shows that priority is only used to resolve scripts which have the same count
+
+unless it is regex it will turn the words into lowercase and it will not check against anything other than words, so you should keep your `include` and `any` to be single words and anything else will never match
+
+## Templating
+
+As mentioned it uses mustache. This is because mustache is great for templating strings and is lightning quick. You can therefore use any templating values that mustache comes with.
+
+For simplicities sake you should use `{{value}}` and `{{{value}}}`, the difference is that `{{value}}` will escape values where as `{{{value}}}` will not
+
+It only uses mustache if your `response` or `responseFn` returns a string value
+
+the message is assigned to `_message` otherwise it is anything you have put into your store
+
+here is a complete example
 
 ```js
-const luke = Bot.bot(...)
-const tim = Bot.bot(...)
+import Builder from 'in-memeory-bot/builder'
+import Bot from 'in-memeory-bot/bot'
+import Helpers from 'in-memeory-bot/helpers'
+import aff from 'in-memeory-bot/en_US.aff'
+import words from 'in-memeory-bot/en_US.dic'
 
-let response = luke.message('Hello') // ['Well, howdy partner!']
-response = tim.message('Hello') // ['*nods* \'sup']
+const scripts = Builder()
+    .script('default')
+        .default()
+        .response('Sorry, I do not understand "{{_message}}"')
+    .script('name')
+        .must.any('is', 'am')
+        .must.any('name', 'called')
+        .responseFn((bot, message) => {
+            const value = Helpers.amIs(message)
+            const name = Helpers.words(message)[0]
+            bot.store({name})
+        })
+        .responseScript('hello')
+    .script('hello')
+        .response('Hello, {{name}}')
+    .build()
+
+const bot = Bot({user: 'Bot', scripts})
+
+bot.message({user: 'Luke', message: 'Which way to the store?'})
+bot.message({user: 'Luke', message: 'My name is Luke Preston'})
+
+bot.history() === [{
+    user: 'Luke',
+    message: 'Which way to the store?'
+}, {
+    user: 'Bot',
+    message: 'Sorry, I do not understand "Which way to the store?"'
+}, {
+    user: 'Luke',
+    message: 'My name is Luke Preston'
+}, {
+    user: 'Bot',
+    message: 'Hello, Luke'
+}]
 ```
-
-You might want to do this to make a more dynamic kind of bot, e.g.
-
-> @bot:  Hi I am the Site Bot, how can I help?
-
-> @me:   How do I buy a new pair of shoes?
-
-> @bot:  Let me transfer you to the Shop
-
-> @shop: I am the shop bot, you wanted to know "How do I buy a new pair of shoes?"
-
-> @shop: You should look at our shoe section [link]
-
-> @me:   How do I make a complaint about some shoes I just bought?
-
-> @shop: Let me take you to the Coms Bot
-
-> @coms: @shop told me you wish to make a complaint about "some shoes I just bought"
-
-and so on
-
-this way you can load a bot when it is needed perhaps, or you could have many bots talking to each other to create NPCs which could talk on end
-
-If you wish to assign users when `message` comes with a second parameter `bot.message('Hello', '@username')` and it appends it to the response
-
-That's it, now go forth and make lots of robot friends
-
-## Contributing
-
-My vision is to make loads of these bots, so that everyone can share bots and they learn from each other. So if you have a script why not create a PR and you could have your bot talking to other people. To use a pre defined script
-
-```js
-const lukeScript = require('in-memory-bot/luke.json')
-```
-
-### Scripts
-
-* `user-bot`, asks questions for a simple setup form
-    > What is your name?
-
-    > What is your gender?
-
-    > What is your date of birth?
-
-    > What is your password?
-
-    > Can you repeat your password?
 
 ## Bots
 
-1. browser bot http://blah with a simple example like the one above
-2. terminal bot clone http://blah similar to above but in the console
-3. bot city http://blah a group of bots all talking to each other where you can join in and chat to different bots
+I would like to make many many in-memory bots and would ideally like it to be community driven, so if you create `${bot-name}-scripts.js` files and create a PR I will happily merge it so others can use that bot. Provide a description for your scripts and if you have a working demo send that too otherwise I will load it into my demo at <http://...>
 
+| bot name | description | demo |
+|---|---|---|
+| profile | Will get information like name, age and gener, ask the bot `help` for a list of attributes it expects from your, or run `bot.start()` to guide the user | <http://.../profile> |
+| ascii | takes what you say and turns it into ascii art format | <http://.../ascii> |
+| stack-overflow | takes what you ask then returns the possible questions from stackoverflow | <http://.../stack-overflow> |
+
+## Contributing
+
+If you want to contribute more than just bots you can, you run the tests with `npm test` and when you are satisfied create a PR. Unlike other tests it is less assertions and more about a conversation working as expected

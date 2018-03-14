@@ -21,7 +21,7 @@ test('bot', () => {
 
     .script('name')
     .response('What is your name?')
-    .store((message, bot) => {
+    .store((bot, message) => {
       const value = Helpers.amIs(message)
       const values = Helpers.words(value)
       bot.store({
@@ -35,7 +35,7 @@ test('bot', () => {
 
     .script('age')
     .response('How old are you?')
-    .store((message, bot) => {
+    .store((bot, message) => {
       const value = Helpers.amIs(message)
       bot.store({
         age: parseInt(value, 10)
