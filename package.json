@@ -2,9 +2,19 @@
   "name": "in-memory-bot",
   "version": "0.0.1",
   "description": "An in memory bot which you can train and chat to without needing a server or any kind of subscription",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "jest --watch"
+  },
+  "directories": {
+    "src": "src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukejpreston/in-memory-bot.get"
+  },
+  "bugs": {
+    "url": "https://github.com/lukejpreston/in-memory-bot/issues"
   },
   "keywords": ["bot", "chat", "ai", "memory", "in-memory"],
   "author": "Luke Preston <lukejpreston@gmail.com>",
