@@ -68,6 +68,10 @@ test('bot', () => {
     .must.any('bot', 'your')
     .response('My name is Bot')
 
+    .script('digit')
+    .must.match(/$\d*^/g)
+    .response('That\'s an interesting digit {{_message}}')
+
     .build()
 
   const bot = Bot({
@@ -110,6 +114,10 @@ test('bot', () => {
   bot.message({
     user: bot.store().name || 'You',
     message: 'What am I called?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: '1234'
   })
 
   const logs = []

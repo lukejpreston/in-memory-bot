@@ -69,8 +69,11 @@ module.exports = ({
           const includes = script.not.include || []
           let any = []
           if (script.not.any) any = flattern(script.not.any)
+          const matches = script.not.match || []
 
-          const not = words.some(word => includes.includes(word)) || words.some(word => any.includes(word))
+          const not = words.some(word => includes.includes(word)) ||
+            words.some(word => any.includes(word) ||
+            matches.some(match => message.test()))
           if (not) return false
         }
 
@@ -78,12 +81,19 @@ module.exports = ({
           let includes = script.must.include || []
           let any = []
           if (script.must.any) any = flattern(script.must.any)
-          const must = words.some(word => includes.includes(word)) || words.some(word => any.includes(word))
+          let matches = script.must.match || []
+
+          const must = words.some(word => includes.includes(word)) ||
+            words.some(word => any.includes(word)) ||
+            matches.some(match => match.test(message))
           if (!must) return false
           else {
             includes = includes.concat(script.include || [])
             if (script.any) any = any.concat(flattern(script.any))
-            const contains = words.some(word => includes.includes(word)) || words.some(word => any.includes(word))
+            matches = matches.concat(script.match || [])
+            const contains = words.some(word => includes.includes(word)) ||
+                words.some(word => any.includes(word)) ||
+                matches.some(match => match.test(message))
             if (contains) return true
           }
         }
@@ -92,7 +102,10 @@ module.exports = ({
           const includes = script.include || []
           let any = []
           if (script.any) any = flattern(script.any)
-          const contains = words.some(word => includes.includes(word)) || words.some(word => any.includes(word))
+          const matches = script.match || []
+          const contains = words.some(word => includes.includes(word)) ||
+            words.some(word => any.includes(word)) ||
+            matches.some(match => match.test(message))
           if (contains) return true
         }
       })
@@ -103,6 +116,11 @@ module.exports = ({
         if (script.include) includes = includes.concat(script.include || [])
         if (script.must) includes = includes.concat(script.must.include || [])
         count += words.filter(word => includes.includes(word)).length
+
+        let matches = []
+        if (script.match) matches = matches.concat(script.match || [])
+        if (script.must) matches = matches.concat(script.must.match || [])
+        count += matches.some(match => match.test(message))
 
         let any = []
         if (script.any) any = any.concat(script.any || [])

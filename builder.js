@@ -51,6 +51,11 @@ module.exports = () => {
       scripts[currentName].include = scripts[currentName].include.concat(args(arguments))
       return builder
     },
+    match () {
+      scripts[currentName].match = scripts[currentName].match || []
+      scripts[currentName].match = scripts[currentName].match.concat(args(arguments))
+      return builder
+    },
     any (any) {
       scripts[currentName].any = scripts[currentName].any || []
       scripts[currentName].any.push(args(arguments))
@@ -61,6 +66,12 @@ module.exports = () => {
         scripts[currentName].must = scripts[currentName].must || {}
         scripts[currentName].must.include = scripts[currentName].must.include || []
         scripts[currentName].must.include = scripts[currentName].must.include.concat(args(arguments))
+        return builder
+      },
+      match () {
+        scripts[currentName].must = scripts[currentName].must || {}
+        scripts[currentName].must.match = scripts[currentName].must.match || []
+        scripts[currentName].must.match = scripts[currentName].must.match.concat(args(arguments))
         return builder
       },
       any () {
@@ -75,6 +86,12 @@ module.exports = () => {
         scripts[currentName].not = scripts[currentName].not || {}
         scripts[currentName].not.include = scripts[currentName].not.include || []
         scripts[currentName].not.include = scripts[currentName].not.include.concat(args(arguments))
+        return builder
+      },
+      match () {
+        scripts[currentName].not = scripts[currentName].not || {}
+        scripts[currentName].not.match = scripts[currentName].not.match || []
+        scripts[currentName].not.match = scripts[currentName].not.match.concat(args(arguments))
         return builder
       },
       any () {
