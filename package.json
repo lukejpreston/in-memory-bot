@@ -1,7 +1,7 @@
 {
   "name": "in-memory-bot",
   "version": "0.0.1",
-  "description": "",
+  "description": "An in memory bot which you can train and chat to without needing a server or any kind of subscription",
   "main": "index.js",
   "scripts": {
     "test": "jest --watch"
