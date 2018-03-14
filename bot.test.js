@@ -1,80 +1,125 @@
-const Bot = require('./')
+const Builder = require('./builder')
+const Bot = require('./bot')
+const Helpers = require('./helpers')
+
 const chalk = require('chalk')
 const fs = require('fs')
 
-const affData = fs.readFileSync('./en_US.aff').toString()
-const wordsData = fs.readFileSync('./en_US.dic').toString()
+const aff = fs.readFileSync('./en_US.aff').toString()
+const words = fs.readFileSync('./en_US.dic').toString()
 
 test('bot', () => {
-    const scripts = Bot.builder()
-        .script('default')
-            .response('Sorry I don\'t understand')
-            .default()
-        .script('welcome')
-            .query('hello')
-            .response('Hello and welcome to the test.')
-            .responseScript('name')
-        .script('name')
-            .store('name', 'your-name')
-            .response('What is your name?')
-        .script('your-name')
-            .parse((message) => {
-                const name = Bot.helpers.amIs(message)
-                const fullName = name.split(/\s/g).filter(value => value !== '')
-                bot.store().fullName = fullName.join(' ')
-                bot.store().firstName = fullName[0]
-                bot.store().lastName = fullName[fullName.length - 1]
-                return `${bot.store().firstName} ${bot.store().lastName}`
-            })
-            .response('Hello {{firstName}}')
-            .responseScript('age')
-        .script('age')
-            .response('How old are you?')
-            .store('age', 'your-age')
-        .script('your-age')
-            .parse((message) => Bot.helpers.amIs(message))
-            .responseFn((bot) => {
-                const age = parseInt(bot.store().age, 10)
-                return `{{name}}, you were born in ${new Date().getFullYear(0) - age}`
-            })
-        .script('first-name')
-            .query('name')
-            .query('first')
-            .query('my')
-            .response('Your first name is {{firstName}}')
-        .script('full-name')
-            .query('name')
-            .query('my')
-            .priority(10)
-            .response('Your name is {{fullName}}')
-        .script('bot-name')
-            .query('name')
-            .query('your')
-            .priority(1000)
-            .response('My name is "Bot", that is short of "In Memory Bot"')
-        .build()
+  const scripts = Builder()
+    .script('default')
+    .default()
+    .response('Sorry, I do not understand "{{_message}}"')
 
-    const bot = Bot.bot(scripts, "en_US", affData, wordsData)
+    .script('welcome')
+    .response('Welcome to the test')
+    .responseScript('name')
+    .start()
 
-    const logs = []
-    const yourMessage = (message) => {
-        const response = bot.message(message)
-        name = bot.store().firstName || 'you'
-        let yourLog = chalk.blue.bold(`@${name}: `)
-        yourLog += chalk.cyan.bold(message)
-        logs.push(yourLog)
+    .script('name')
+    .response('What is your name?')
+    .store((message, bot) => {
+      const value = Helpers.amIs(message)
+      const values = Helpers.words(value)
+      bot.store({
+        fullname: values.join(' '),
+        firstname: values[0],
+        name: values[0],
+        lastname: values[values.length - 1]
+      })
+    })
+    .responseScript('age')
 
-        let botLog = chalk.red.bold(`@Bot: `)
-        botLog += chalk.yellow.bold(response.join('\n      '))
-        logs.push(botLog)
-    }
+    .script('age')
+    .response('How old are you?')
+    .store((message, bot) => {
+      const value = Helpers.amIs(message)
+      bot.store({
+        age: parseInt(value, 10)
+      })
+    })
+    .responseScript('profile')
 
-    yourMessage('Hello')
-    yourMessage('My name is Luke John Preston')
-    yourMessage('I am 28 years old')
-    yourMessage('What is my name?')
-    yourMessage('What is my first name?')
-    yourMessage('What is yor nam?')
+    .script('profile')
+    .responseFn((bot) => {
+      const year = new Date().getFullYear() - bot.store().age
+      return `{{name}}, was born in ${year}`
+    })
 
-    console.log(logs.join('\n\n'))    
+    .script('first-name')
+    .priority(1)
+    .must.any('name', 'called')
+    .include('first')
+    .not.include('last', 'full')
+    .response('Your first name is {{firstname}}')
+
+    .script('full-name')
+    .priority(2)
+    .must.any('name', 'called')
+    .include('full')
+    .not.include('last', 'first')
+    .response('Your full name is {{fullname}}')
+
+    .script('bot-name')
+    .must.any('name', 'called')
+    .must.any('bot', 'your')
+    .response('My name is Bot')
+
+    .build()
+
+  const bot = Bot({
+    user: 'Bot',
+    scripts,
+    language: 'en_US',
+    aff,
+    words
+  })
+
+  bot.start()
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'My name is Luke John Preston'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'I am 28'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What is my name?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What is my first name?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What is my full name?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What is your name?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What is your default value?'
+  })
+  bot.message({
+    user: bot.store().name || 'You',
+    message: 'What am I called?'
+  })
+
+  const logs = []
+  bot.history().forEach(history => {
+    const nameColor = history.user === 'Bot' ? 'red' : 'blue'
+    const messageColor = history.user === 'Bot' ? 'yellow' : 'cyan'
+    logs.push(
+      chalk.bold[nameColor](`@${history.user}: `) +
+      chalk.bold[messageColor](history.message)
+    )
+  })
+  console.log(logs.join('\n'))
 })
