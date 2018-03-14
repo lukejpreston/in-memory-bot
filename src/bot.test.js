@@ -4,9 +4,10 @@ const Helpers = require('./helpers')
 
 const chalk = require('chalk')
 const fs = require('fs')
+const path = require('path')
 
-const aff = fs.readFileSync('./en_US.aff').toString()
-const words = fs.readFileSync('./en_US.dic').toString()
+const aff = fs.readFileSync(path.resolve(__dirname, './en_US.aff')).toString()
+const words = fs.readFileSync(path.resolve(__dirname, './en_US.dic')).toString()
 
 test('bot', () => {
   const scripts = Builder()
@@ -69,7 +70,7 @@ test('bot', () => {
     .response('My name is Bot')
 
     .script('digit')
-    .must.match(/$\d*^/g)
+    .must.match(/^[0-9]*$/g)
     .response('That\'s an interesting digit {{_message}}')
 
     .build()

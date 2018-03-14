@@ -61,6 +61,11 @@ module.exports = () => {
       scripts[currentName].any.push(args(arguments))
       return builder
     },
+    matchAny () {
+      scripts[currentName].matchAny = scripts[currentName].matchAny || []
+      scripts[currentName].matchAny.push(args(arguments))
+      return builder
+    },
     must: {
       include () {
         scripts[currentName].must = scripts[currentName].must || {}
@@ -78,6 +83,12 @@ module.exports = () => {
         scripts[currentName].must = scripts[currentName].must || {}
         scripts[currentName].must.any = scripts[currentName].must.any || []
         scripts[currentName].must.any.push(args(arguments))
+        return builder
+      },
+      matchAny () {
+        scripts[currentName].must = scripts[currentName].must || {}
+        scripts[currentName].must.matchAny = scripts[currentName].must.matchAny || []
+        scripts[currentName].must.matchAny.push(args(arguments))
         return builder
       }
     },
@@ -98,6 +109,12 @@ module.exports = () => {
         scripts[currentName].not = scripts[currentName].not || {}
         scripts[currentName].not.any = scripts[currentName].not.any || []
         scripts[currentName].not.any.push(args(arguments))
+        return builder
+      },
+      matchAny () {
+        scripts[currentName].not = scripts[currentName].not || {}
+        scripts[currentName].not.matchAny = scripts[currentName].not.matchAny || []
+        scripts[currentName].not.matchAny.push(args(arguments))
         return builder
       }
     },

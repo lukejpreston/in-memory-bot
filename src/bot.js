@@ -85,7 +85,7 @@ module.exports = ({
 
           const must = words.some(word => includes.includes(word)) ||
             words.some(word => any.includes(word)) ||
-            matches.some(match => match.test(message))
+            matches.some(match => message.match(match) !== null)
           if (!must) return false
           else {
             includes = includes.concat(script.include || [])
@@ -93,7 +93,7 @@ module.exports = ({
             matches = matches.concat(script.match || [])
             const contains = words.some(word => includes.includes(word)) ||
                 words.some(word => any.includes(word)) ||
-                matches.some(match => match.test(message))
+                matches.some(match => message.match(match) !== null)
             if (contains) return true
           }
         }
@@ -105,7 +105,7 @@ module.exports = ({
           const matches = script.match || []
           const contains = words.some(word => includes.includes(word)) ||
             words.some(word => any.includes(word)) ||
-            matches.some(match => match.test(message))
+            matches.some(match => message.match(match) !== null)
           if (contains) return true
         }
       })
@@ -120,7 +120,7 @@ module.exports = ({
         let matches = []
         if (script.match) matches = matches.concat(script.match || [])
         if (script.must) matches = matches.concat(script.must.match || [])
-        count += matches.some(match => match.test(message))
+        count += matches.some(match => message.match(match) !== null)
 
         let any = []
         if (script.any) any = any.concat(script.any || [])
