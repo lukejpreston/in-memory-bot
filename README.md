@@ -27,7 +27,9 @@ const scripts = Builder()
         .response('I don\'t understand {{_message}}')
         .default()
     .script('hello')
-        .include('hello')
+        .count((bot, message) => {
+            return message.toLowerCase().includes('hello') ? 1 : 0
+        })
         .response('How do you do?')
     .build()
 
@@ -82,7 +84,7 @@ scripts === {
 }
 ```
 
-#### start
+#### builder.start
 
 the start script, takes a boolean value
 
@@ -269,488 +271,6 @@ scripts === {
 }
 ```
 
-#### include
-
-matches against one or more of these values, but not strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .include('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .include('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .include(['i\'m', 'i', 'am', 'is'])
-        .include(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        include: ['name']
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        include: ['name', 'age']
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
-    }
-}
-```
-
-#### match
-
-matches against one or more of these regex values, but not strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .match(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .match(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .match([/\d*/g, /\$d*^/g])
-        .match([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        match: [/\w*/g]
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        match: [/\w*/g, /\d*/g]
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        match: [/\d*/g, /\$d*^/g, /[:num:]/g]
-    }
-}
-```
-
-#### any
-
-matches against at least one of these values, but not strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .any('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .any('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .any(['i\'m', 'i', 'am', 'is'])
-        .any(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        any: [['name']]
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        any: [['name', 'age']]
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
-    }
-}
-```
-
-#### matchAny
-
-matches against at least one of these regex values, but not strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .matchAny(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .matchAny(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .matchAny([/\d*/g, /\$d*^/g])
-        .matchAny([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        matchAny: [[/\w*/g]]
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        matchAny: [[/\w*/g, /\d*/g]
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
-    }
-}
-```
-
-#### must.include
-
-matches against one or more of these values, strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .must.include('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .must.include('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .must.include(['i\'m', 'i', 'am', 'is'])
-        .must.include(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        must: {
-            include: ['name']
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            include: ['name', 'age']
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
-        }
-    }
-}
-```
-
-#### must.match
-
-matches against one or more of these regex values, scrit
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .must.match(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .must.match(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .must.match([/\d*/g, /\$d*^/g])
-        .must.match([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        must: {
-            match: [/\w*/g]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            match: [/\w*/g, /\d*/g]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            match: [/\d*/g, /\$d*^/g, /[:num:]/g]
-        }
-    }
-}
-```
-
-#### must.any
-
-matches against at least one of these values, scrit
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .must.any('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .must.any('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .must.any(['i\'m', 'i', 'am', 'is'])
-        .must.any(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        must: {
-            any: [['name']]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            any: [['name', 'age']]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
-        }
-    }
-}
-```
-
-#### must.matchAny
-
-matches against at least one of these regex values, scrit
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .must.matchAny(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .must.matchAny(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .must.matchAny([/\d*/g, /\$d*^/g])
-        .must.matchAny([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        must: {
-            matchAny: [[/\w*/g]]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            matchAny: [[/\w*/g, /\d*/g]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        must: {
-            matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
-        }
-    }
-}
-```
-
-#### not.include
-
-does not match against one or more of these values, strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .not.include('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .not.include('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .not.include(['i\'m', 'i', 'am', 'is'])
-        .not.include(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        not: {
-            include: ['name']
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            include: ['name', 'age']
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            include: ['i\'m', 'i', 'am', 'is', 'years', 'year\'s']
-        }
-    }
-}
-```
-
-#### not.match
-
-does not match against one or more of these regex values, scrit
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .not.match(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .not.match(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .not.match([/\d*/g, /\$d*^/g])
-        .not.match([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        not: {
-            match: [/\w*/g]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            match: [/\w*/g, /\d*/g]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            match: [/\d*/g, /\$d*^/g, /[:num:]/g]
-        }
-    }
-}
-```
-
-#### not.any
-
-does not match against at least one of these values, scrit
-
-matches against at least one of these values, but not strict
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .not.any('name')
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .not.any('name', 'age')
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .not.any(['i\'m', 'i', 'am', 'is'])
-        .not.any(['years', 'year\'s'])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        not: {
-            any: [['name']]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            any: [['name', 'age']]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            any: [['i\'m', 'i', 'am', 'is'], ['years', 'year\'s']]
-        }
-    }
-}
-```
-
-#### not.matchAny
-
-does not match against at least one of these regex values, scrit
-
-```js
-import Builder from 'in-memory-bot/builder'
-
-const scripts = Builder()
-    .script('name')
-        .not.matchAny(/\w*/g)
-        .response('Your name is {{name}}')
-    .script('name-age')
-        .not.matchAny(/\w*/g, /\d*/g)
-        .response('Your name is {{name}} and you are {{age}} Year\'s old')
-    .script('set-age')
-        .not.matchAny([/\d*/g, /\$d*^/g])
-        .not.matchAny([/[:num:]/g])
-        .response('You are {{age}} Year\'s old')
-    .build()
-
-scripts === {
-    name: {
-        response: 'Your name is {{name}}'
-        not: {
-            matchAny: [[/\w*/g]]
-        }
-    },
-    'name-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            matchAny: [[/\w*/g, /\d*/g]
-        }
-    },
-    'set-age': {
-        response: 'Your name is {{name}} and you are {{age}} Year\'s old'
-        not: {
-            matchAny: [[/\d*/g, /\$d*^/g], [/[:num:]/g]]
-        }
-    }
-}
-```
-
 ### Bot
 
 the bot, you send your bot(s) messages and it responds
@@ -786,7 +306,7 @@ We have the `en_US` dictionary available otherwise you will need to bring your o
 
 The dictionary uses [typo-js](https://github.com/cfinke/Typo.js/)
 
-#### start
+#### bot.start
 
 runs the first start script it finds, if you want to run mutliple start scripts you should chain them using `responseScript`
 
@@ -818,7 +338,7 @@ import Bot from 'in-memory-bot/bot'
 
 const scripts = Builder()
     .script('welcome')
-        .include('hello')
+        .count((bot, message) => message.toLowerCase().includes('hello') ? 1 : 0)
         .response('Hi, I am @Bot')
     .build()
 
@@ -983,17 +503,7 @@ result === ['Hello', 'my', 'name', 'is', 'Luke']
 
 ## Algorithm
 
-The algorithm for matching is quite simple
-
-matching against any `not` does not return that script
-
-matching againt `must` is manditory ortherwise that script is not returned
-
-it then matches against everything creating a count value, it put these scripts into a list, sorting by count then by priority then by default where defualt always has a count of `1`. Then it picks the top value of that list
-
-this should help you construct your scripts to make them more efficient and shows that priority is only used to resolve scripts which have the same count
-
-unless it is regex it will turn the words into lowercase and it will not check against anything other than words, so you should keep your `include` and `any` to be single words and anything else will never match
+The algorithm for matching is simple
 
 ## Templating
 
@@ -1019,8 +529,15 @@ const scripts = Builder()
         .default()
         .response('Sorry, I do not understand "{{_message}}"')
     .script('name')
-        .must.any('is', 'am')
-        .must.any('name', 'called')
+        .count((bot, message) => {
+            message = message.toLowerCase()
+            let count = 0
+            count += message.includes('is') || message.includes('am') ? 1 : 0
+            if (count === 0) return count
+            count += message.includes('name') || message.includes('called') ? 1 : 0
+            if (count === 1) return 0
+            return count
+        })
         .responseFn((bot, message) => {
             const value = Helpers.amIs(message)
             const name = Helpers.words(message)[0]

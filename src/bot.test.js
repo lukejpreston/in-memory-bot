@@ -10,6 +10,8 @@ const aff = fs.readFileSync(path.resolve(__dirname, './en_US.aff')).toString()
 const words = fs.readFileSync(path.resolve(__dirname, './en_US.dic')).toString()
 
 test('bot', () => {
+  const helpers = Helpers({language: 'en_US', aff, words})
+
   const scripts = Builder()
     .script('default')
     .default()
@@ -23,8 +25,8 @@ test('bot', () => {
     .script('name')
     .response('What is your name?')
     .store((bot, message) => {
-      const value = Helpers.amIs(message)
-      const values = Helpers.words(value)
+      const value = helpers.amIs(message)
+      const values = helpers.words(value)
       bot.store({
         fullname: values.join(' '),
         firstname: values[0],
@@ -37,7 +39,7 @@ test('bot', () => {
     .script('age')
     .response('How old are you?')
     .store((bot, message) => {
-      const value = Helpers.amIs(message)
+      const value = helpers.amIs(message)
       bot.store({
         age: parseInt(value, 10)
       })
@@ -52,25 +54,46 @@ test('bot', () => {
 
     .script('first-name')
     .priority(1)
-    .must.any('name', 'called')
-    .include('first')
-    .not.include('last', 'full')
+    .count((bot, message) => {
+      message = message.toLowerCase()
+      if (message.includes('last') || message.includes('full')) return 0
+      let count = 0
+      count += message.includes('name') || message.includes('called') ? 1 : 0
+      if (count === 0) return 0
+      count += message.includes('first') ? 1 : 0
+      return count
+    })
     .response('Your first name is {{firstname}}')
 
     .script('full-name')
     .priority(2)
-    .must.any('name', 'called')
-    .include('full')
-    .not.include('last', 'first')
+    .count((bot, message) => {
+      message = message.toLowerCase()
+      if (message.includes('last') || message.includes('first')) return 0
+      let count = 0
+      count += message.includes('name') || message.includes('called') ? 1 : 0
+      if (count === 0) return 0
+      count += message.includes('full') ? 1 : 0
+      return count
+    })
     .response('Your full name is {{fullname}}')
 
     .script('bot-name')
-    .must.any('name', 'called')
-    .must.any('bot', 'your')
+    .count((bot, message) => {
+      message = message.toLowerCase()
+      let count = 0
+      count += message.includes('name') || message.includes('name') ? 1 : 0
+      if (count === 0) return count
+      count += message.includes('bot') || message.includes('your') ? 1 : 0
+      if (count === 1) return 0
+      return count
+    })
     .response('My name is Bot')
 
     .script('digit')
-    .must.match(/^[0-9]*$/g)
+    .count((bot, message) => {
+      return message.match(/^[0-9]*$/g) !== null ? 1 : 0
+    })
     .response('That\'s an interesting digit {{_message}}')
 
     .build()
